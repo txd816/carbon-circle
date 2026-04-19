@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/ai-tools", "destination": "/ai-tools.html" },
+    { "source": "/ai-characters", "destination": "/ai-characters.html" },
+    { "source": "/market", "destination": "/market.html" },
+    { "source": "/profile", "destination": "/profile.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ]
+}

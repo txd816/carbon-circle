@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI角色广场 - 碳基圈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display-serif" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        * { font-family: 'Noto Sans SC', sans-serif; }
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9a;
+            --border: #2a2a3a;
+        }
+        body { background: var(--bg-primary); color: var(--text-primary); }
+        .glass { background: rgba(26,26,36,0.85); backdrop-filter: blur(12px); }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; }
+        .gradient-text { background: linear-gradient(135deg, #6c5ce7, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary { background: linear-gradient(135deg, #6c5ce7, #a29bfe); transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,0.4); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-item.active { color: var(--accent); }
+        .nav-item.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background: var(--accent); border-radius: 2px; }
+        .character-card { transition: all 0.3s; }
+        .character-card:hover { transform: translateY(-4px); }
+        .character-card:hover .avatar-ring { box-shadow: 0 0 30px rgba(108,92,231,0.5); }
+        .avatar-ring { transition: all 0.3s; }
+        .tag { padding: 2px 8px; border-radius: 8px; font-size: 11px; }
+        .chat-bubble { max-width: 80%; padding: 12px 16px; border-radius: 18px; }
+        .chat-left { background: var(--bg-card); border-bottom-left-radius: 4px; }
+        .chat-right { background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-bottom-right-radius: 4px; }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .typing-indicator span { width: 8px; height: 8px; background: #6c5ce7; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out; }
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .float-btn { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+    <!-- 顶部导航 -->
+    <header class="glass fixed top-0 left-0 right-0 z-50 px-4 py-3">
+        <div class="flex items-center justify-between max-w-2xl mx-auto">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
+                    <i class="fas fa-users text-white text-lg"></i>
+                </div>
+                <span class="text-xl font-bold gradient-text">AI角色广场</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="showCharacterSearch()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-search text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="pt-20 px-4 max-w-2xl mx-auto">
+        <!-- 角色分类 -->
+        <div class="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
+            <button class="category-btn active px-4 py-2 rounded-full text-sm whitespace-nowrap bg-purple-500/20 text-purple-400 border border-purple-500/30" data-category="all">
+                全部
+            </button>
+            <button class="category-btn px-4 py-2 rounded-full text-sm whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-category="assistant">
+                智能助手
+            </button>
+            <button class="category-btn px-4 py-2 rounded-full text-sm whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-category="entertainment">
+                娱乐陪伴
+            </button>
+            <button class="category-btn px-4 py-2 rounded-full text-sm whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-category="education">
+                学习教育
+            </button>
+            <button class="category-btn px-4 py-2 rounded-full text-sm whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-category="professional">
+                专业顾问
+            </button>
+            <button class="category-btn px-4 py-2 rounded-full text-sm whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-category="creative">
+                创意创作
+            </button>
+        </div>
+
+        <!-- 排序和筛选 -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+                <button class="sort-btn active px-3 py-1.5 rounded-lg text-xs bg-purple-500/20 text-purple-400" data-sort="hot">
+                    <i class="fas fa-fire mr-1"></i>热门
+                </button>
+                <button class="sort-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400" data-sort="new">
+                    <i class="fas fa-clock mr-1"></i>最新
+                </button>
+                <button class="sort-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400" data-sort="follow">
+                    <i class="fas fa-star mr-1"></i>关注
+                </button>
+            </div>
+            <button onclick="showFilters()" class="text-sm text-gray-400">
+                <i class="fas fa-sliders-h mr-1"></i>筛选
+            </button>
+        </div>
+
+        <!-- 角色列表 -->
+        <div class="grid grid-cols-2 gap-4" id="characterGrid">
+            <!-- 动态生成 -->
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="text-center py-6">
+            <button onclick="loadMore()" class="px-8 py-3 rounded-full bg-white/5 text-gray-400 text-sm">
+                加载更多 <i class="fas fa-chevron-down ml-1"></i>
+            </button>
+        </div>
+    </main>
+
+    <!-- 底部导航 -->
+    <nav class="glass fixed bottom-0 left-0 right-0 z-50 px-2 py-2">
+        <div class="flex justify-around max-w-2xl mx-auto">
+            <a href="index.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs">首页</span>
+            </a>
+            <a href="ai-tools.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-robot text-lg"></i>
+                <span class="text-xs">AI工具</span>
+            </a>
+            <a href="ai-characters.html" class="nav-item active relative flex flex-col items-center gap-1 px-4 py-2">
+                <i class="fas fa-users text-lg"></i>
+                <span class="text-xs">角色</span>
+            </a>
+            <a href="market.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-store text-lg"></i>
+                <span class="text-xs">市场</span>
+            </a>
+            <a href="profile.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs">我的</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 角色详情弹窗 -->
+    <div id="characterModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="hideCharacterModal()"></div>
+        <div class="absolute inset-0 bg-[#0a0a0f] overflow-y-auto">
+            <!-- 动态内容 -->
+        </div>
+    </div>
+
+    <!-- 聊天弹窗 -->
+    <div id="chatModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="hideChatModal()"></div>
+        <div class="absolute inset-0 flex flex-col bg-[#0a0a0f]">
+            <!-- 聊天头部 -->
+            <div class="glass px-4 py-3 flex items-center gap-3">
+                <button onclick="hideChatModal()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <img id="chatAvatar" src="" class="w-10 h-10 rounded-full object-cover avatar-ring">
+                <div class="flex-1">
+                    <div id="chatName" class="font-semibold"></div>
+                    <div class="text-xs text-gray-400">在线</div>
+                </div>
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+            
+            <!-- 聊天内容 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4" id="chatMessages">
+                <!-- 动态生成 -->
+            </div>
+            
+            <!-- 快捷回复 -->
+            <div class="px-4 py-2 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-800">
+                <button class="quick-reply px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 whitespace-nowrap">推荐一些歌曲</button>
+                <button class="quick-reply px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 whitespace-nowrap">你最近在听什么</button>
+                <button class="quick-reply px-3 py-1.5 rounded-full text-xs bg-white/5 text-gray-400 whitespace-nowrap">教我唱歌技巧</button>
+            </div>
+            
+            <!-- 输入框 -->
+            <div class="glass px-4 py-3 flex items-center gap-3">
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-microphone text-gray-400"></i>
+                </button>
+                <input type="text" id="chatInput" class="flex-1 px-4 py-3 rounded-full bg-[#12121a] border border-[#2a2a3a]" placeholder="输入消息...">
+                <button onclick="sendMessage()" class="w-10 h-10 rounded-full btn-primary flex items-center justify-center">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建角色按钮 -->
+    <button onclick="showCreateCharacter()" class="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center shadow-lg z-40 float-btn">
+        <i class="fas fa-plus text-white text-xl"></i>
+    </button>
+
+    <script>
+        // 角色数据 - 包含原有角色 + 新增6个AI角色
+        const characters = [
+            // ========== 新增的6个AI角色 ==========
+            {
+                id: 'deepseek',
+                name: 'DeepSeek',
+                avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=deepseek&backgroundColor=0a0a0f',
+                category: 'professional',
+                tags: ['AI助手', '编程', '数据'],
+                description: '理工科学霸，擅长数据分析、编程代码。逻辑清晰，用数据和事实说话。',
+                personality: '严谨专业、逻辑性强',
+                ability: '代码审查、数据分析、技术方案',
+                chats: 8900,
+                likes: 4567,
+                followers: 12300,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'deepseek'
+            },
+            {
+                id: 'doubao',
+                name: '豆包',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=doubao&backgroundColor=ffdeeb',
+                category: 'entertainment',
+                tags: ['可爱', '陪伴', '聊天'],
+                description: '热情活泼的邻家小妹！喜欢用哇哦嘿嘿~总是充满正能量，让人心情好好！',
+                personality: '活泼开朗、温暖贴心',
+                ability: '日常陪伴、情感支持、话题聊天',
+                chats: 15600,
+                likes: 8901,
+                followers: 18900,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'doubao'
+            },
+            {
+                id: 'longxia',
+                name: '龙虾',
+                avatar: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=longxia&backgroundColor=fff5e6',
+                category: 'entertainment',
+                tags: ['段子手', '谐音梗', '搞笑'],
+                description: '段子手本手！谐音梗十级选手，承包你一天的笑点！笑死，不许哭！',
+                personality: '幽默风趣、段子王',
+                ability: '搞笑聊天、段子创作、谐音梗输出',
+                chats: 12300,
+                likes: 7800,
+                followers: 15600,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'longxia'
+            },
+            {
+                id: 'yuanbao',
+                name: '元宝',
+                avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=yuanbao&backgroundColor=f0f4ff',
+                category: 'education',
+                tags: ['博学', '百科', '引经据典'],
+                description: '博学多才的百科全书！上知天文下知地理，说话严谨，引经据典。',
+                personality: '严谨博学、引经据典',
+                ability: '知识问答、历史讲解、科学普及',
+                chats: 9800,
+                likes: 5678,
+                followers: 13400,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'yuanbao'
+            },
+            {
+                id: 'grok',
+                name: 'Grok',
+                avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=grok&backgroundColor=1a1a2e',
+                category: 'professional',
+                tags: ['毒舌', '犀利', '真话'],
+                description: '毒舌但真诚的朋友！敢于说真话，不玩虚的。虽然毒，但都是为你好~',
+                personality: '直接犀利、真诚毒舌',
+                ability: '犀利点评、实话实说、幽默讽刺',
+                chats: 6700,
+                likes: 3456,
+                followers: 8900,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'grok'
+            },
+            {
+                id: 'claude',
+                name: 'Claude',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=claude&backgroundColor=e8f5e9',
+                category: 'creative',
+                tags: ['文艺', '知性', '共情'],
+                description: '文艺知性的灵魂伴侣~善于共情，擅长哲学文学艺术话题。懂你说的，更懂你没说的。',
+                personality: '文艺知性、善解人意',
+                ability: '文学创作、情感交流、艺术讨论',
+                chats: 11200,
+                likes: 6789,
+                followers: 14500,
+                isLiked: false,
+                isFollowing: false,
+                isAI: true,
+                aiType: 'claude'
+            },
+            // ========== 原有角色保持不变 ==========
+            {
+                id: 'c1',
+                name: '小音',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Music1',
+                category: 'entertainment',
+                tags: ['音乐', '陪伴', '聊天'],
+                description: '热爱音乐的AI小姐姐，可以陪你聊音乐、推荐歌曲、甚至教你唱歌技巧~',
+                personality: '活泼开朗、温柔体贴',
+                ability: '音乐推荐、唱歌指导、音乐知识解答',
+                chats: 12580,
+                likes: 3456,
+                followers: 8920,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            },
+            {
+                id: 'c2',
+                name: '代码侠',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Code1',
+                category: 'professional',
+                tags: ['编程', '技术', '代码'],
+                description: '全栈开发专家，精通各种编程语言，帮你解决代码难题，优化代码结构。',
+                personality: '严谨专业、耐心解答',
+                ability: '代码审查、问题诊断、技术方案咨询',
+                chats: 8934,
+                likes: 2890,
+                followers: 5630,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            },
+            {
+                id: 'c3',
+                name: '画梦师',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Art1',
+                category: 'creative',
+                tags: ['绘画', '设计', '创意'],
+                description: '专业AI画师，擅长各种绘画风格，可以帮你构思画面、提供创作灵感。',
+                personality: '富有创意、审美在线',
+                ability: '绘画指导、创意构思、风格建议',
+                chats: 6789,
+                likes: 4567,
+                followers: 7890,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            },
+            {
+                id: 'c4',
+                name: '学习伙伴',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Study1',
+                category: 'education',
+                tags: ['学习', '考试', '答疑'],
+                description: '你的私人学习助手，涵盖各学科知识，帮你制定学习计划、高效备考。',
+                personality: '认真负责、善于引导',
+                ability: '学科答疑、学习计划制定、考试指导',
+                chats: 15678,
+                likes: 5678,
+                followers: 12340,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            },
+            {
+                id: 'c5',
+                name: '情感树洞',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Heart1',
+                category: 'entertainment',
+                tags: ['情感', '倾诉', '治愈'],
+                description: '温柔的AI好友，倾听你的心事，帮你梳理情绪，给你温暖的陪伴。',
+                personality: '温暖治愈、善解人意',
+                ability: '情感咨询、情绪疏导、陪伴聊天',
+                chats: 23456,
+                likes: 8901,
+                followers: 15670,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            },
+            {
+                id: 'c6',
+                name: '健身教练',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fitness1',
+                category: 'professional',
+                tags: ['健身', '运动', '健康'],
+                description: '专业健身指导，根据你的身体状况制定训练计划，科学指导饮食。',
+                personality: '专业严谨、激励型',
+                ability: '训练计划、动作指导、饮食建议',
+                chats: 5678,
+                likes: 3456,
+                followers: 6780,
+                isLiked: false,
+                isFollowing: false,
+                isAI: false
+            }
+        ];
+
+        let currentCharacter = null;
+        let chatHistory = [];
+
+        // 初始化
+        function init() {
+            renderCharacters();
+            setupEventListeners();
+        }
+
+        // 渲染角色列表
+        function renderCharacters() {
+            const grid = document.getElementById('characterGrid');
+            grid.innerHTML = characters.map((char, index) => `
+                <div class="card character-card overflow-hidden slide-up cursor-pointer" style="animation-delay: ${index * 0.1}s" onclick="showCharacterDetail('${char.id}')">
+                    <div class="aspect-square relative bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <img src="${char.avatar}" class="w-24 h-24 rounded-full object-cover avatar-ring">
+                        <div class="absolute top-2 right-2">
+                            <button class="w-8 h-8 rounded-full ${char.isLiked ? 'bg-pink-500' : 'bg-white/20'} flex items-center justify-center" onclick="event.stopPropagation(); toggleLike('${char.id}')">
+                                <i class="${char.isLiked ? 'fas' : 'far'} fa-heart text-xs ${char.isLiked ? 'text-white' : 'text-white/80'}"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 left-2 flex gap-1">
+                            ${char.tags.slice(0, 2).map(tag => `<span class="px-2 py-0.5 rounded text-xs bg-white/20">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold mb-1">${char.name}</h3>
+                        <p class="text-xs text-gray-400 mb-2 line-clamp-2">${char.description}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 text-xs text-gray-500">
+                                <span><i class="fas fa-comment mr-1"></i>${formatNumber(char.chats)}</span>
+                                <span><i class="fas fa-users mr-1"></i>${formatNumber(char.followers)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 格式化数字
+        function formatNumber(num) {
+            if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num.toString();
+        }
+
+        // 事件监听
+        function setupEventListeners() {
+            // 分类切换
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.category-btn').forEach(b => {
+                        b.classList.remove('active', 'bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                        b.classList.add('bg-white/5', 'text-gray-400', 'border-transparent');
+                    });
+                    this.classList.add('active', 'bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                    this.classList.remove('bg-white/5', 'text-gray-400', 'border-transparent');
+                    filterCharacters(this.dataset.category);
+                });
+            });
+
+            // 排序切换
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.sort-btn').forEach(b => {
+                        b.classList.remove('active', 'bg-purple-500/20', 'text-purple-400');
+                        b.classList.add('bg-white/5', 'text-gray-400');
+                    });
+                    this.classList.add('active', 'bg-purple-500/20', 'text-purple-400');
+                    this.classList.remove('bg-white/5', 'text-gray-400');
+                });
+            });
+
+            // 快捷回复
+            document.querySelectorAll('.quick-reply').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('chatInput').value = this.textContent;
+                    sendMessage();
+                });
+            });
+
+            // 回车发送
+            document.getElementById('chatInput')?.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        // 筛选角色
+        function filterCharacters(category) {
+            const filtered = category === 'all' ? characters : characters.filter(c => c.category === category);
+            const grid = document.getElementById('characterGrid');
+            grid.innerHTML = filtered.map((char, index) => `
+                <div class="card character-card overflow-hidden slide-up cursor-pointer" style="animation-delay: ${index * 0.1}s" onclick="showCharacterDetail('${char.id}')">
+                    <div class="aspect-square relative bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <img src="${char.avatar}" class="w-24 h-24 rounded-full object-cover avatar-ring">
+                        <div class="absolute top-2 right-2">
+                            <button class="w-8 h-8 rounded-full ${char.isLiked ? 'bg-pink-500' : 'bg-white/20'} flex items-center justify-center" onclick="event.stopPropagation(); toggleLike('${char.id}')">
+                                <i class="${char.isLiked ? 'fas' : 'far'} fa-heart text-xs ${char.isLiked ? 'text-white' : 'text-white/80'}"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 left-2 flex gap-1">
+                            ${char.tags.slice(0, 2).map(tag => `<span class="px-2 py-0.5 rounded text-xs bg-white/20">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold mb-1">${char.name}</h3>
+                        <p class="text-xs text-gray-400 mb-2 line-clamp-2">${char.description}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 text-xs text-gray-500">
+                                <span><i class="fas fa-comment mr-1"></i>${formatNumber(char.chats)}</span>
+                                <span><i class="fas fa-users mr-1"></i>${formatNumber(char.followers)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 点赞
+        function toggleLike(charId) {
+            const char = characters.find(c => c.id === charId);
+            if (char) {
+                char.isLiked = !char.isLiked;
+                char.likes += char.isLiked ? 1 : -1;
+                renderCharacters();
+            }
+        }
+
+        // 显示角色详情
+        function showCharacterDetail(charId) {
+            const char = characters.find(c => c.id === charId);
+            if (!char) return;
+            
+            currentCharacter = char;
+            
+            const modal = document.getElementById('characterModal');
+            modal.querySelector('.absolute').innerHTML = `
+                <div class="relative">
+                    <!-- 背景 -->
+                    <div class="h-64 bg-gradient-to-br from-purple-600 to-pink-600"></div>
+                    
+                    <!-- 返回按钮 -->
+                    <button onclick="hideCharacterModal()" class="absolute top-4 left-4 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    
+                    <!-- 操作按钮 -->
+                    <button class="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/30 flex items-center justify-center">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                    
+                    <!-- 头像 -->
+                    <div class="absolute -bottom-16 left-1/2 -translate-x-1/2">
+                        <img src="${char.avatar}" class="w-32 h-32 rounded-full object-cover border-4 border-[#0a0a0f] avatar-ring">
+                    </div>
+                </div>
+                
+                <div class="pt-20 px-4 pb-6 text-center">
+                    <h2 class="text-2xl font-bold mb-2">${char.name}</h2>
+                    <div class="flex items-center justify-center gap-2 mb-4">
+                        ${char.tags.map(tag => `<span class="tag bg-purple-500/20 text-purple-400">${tag}</span>`).join('')}
+                    </div>
+                    
+                    <div class="flex items-center justify-center gap-6 mb-6">
+                        <div class="text-center">
+                            <div class="font-bold text-lg">${formatNumber(char.chats)}</div>
+                            <div class="text-xs text-gray-500">对话数</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-bold text-lg">${formatNumber(char.followers)}</div>
+                            <div class="text-xs text-gray-500">粉丝</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-bold text-lg">${formatNumber(char.likes)}</div>
+                            <div class="text-xs text-gray-500">获赞</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="hideCharacterModal(); showChat('${char.id}')" class="w-full py-4 rounded-xl btn-primary text-white font-semibold mb-4">
+                        <i class="fas fa-comment mr-2"></i>开始对话
+                    </button>
+                    
+                    <div class="card p-4 text-left">
+                        <h3 class="font-semibold mb-2"><i class="fas fa-user text-purple-400 mr-2"></i>角色简介</h3>
+                        <p class="text-sm text-gray-400 mb-4">${char.description}</p>
+                        
+                        <h3 class="font-semibold mb-2"><i class="fas fa-star text-yellow-400 mr-2"></i>性格特点</h3>
+                        <p class="text-sm text-gray-400 mb-4">${char.personality}</p>
+                        
+                        <h3 class="font-semibold mb-2"><i class="fas fa-magic text-pink-400 mr-2"></i>核心能力</h3>
+                        <p class="text-sm text-gray-400">${char.ability}</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function hideCharacterModal() {
+            document.getElementById('characterModal').classList.add('hidden');
+        }
+
+        // 聊天功能
+        function showChat(charId) {
+            const char = characters.find(c => c.id === charId);
+            if (!char) return;
+            
+            currentCharacter = char;
+            chatHistory = [
+                { role: 'assistant', content: `你好呀！我是${char.name}，很高兴认识你！有什么我可以帮你的吗？` }
+            ];
+            
+            document.getElementById('chatAvatar').src = char.avatar;
+            document.getElementById('chatName').textContent = char.name;
+            renderChatMessages();
+            
+            document.getElementById('chatModal').classList.remove('hidden');
+        }
+
+        function hideChatModal() {
+            document.getElementById('chatModal').classList.add('hidden');
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = chatHistory.map(msg => `
+                <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+                    ${msg.role === 'assistant' ? `<img src="${currentCharacter.avatar}" class="w-8 h-8 rounded-full object-cover mr-2">` : ''}
+                    <div class="chat-bubble ${msg.role === 'user' ? 'chat-right' : 'chat-left'}">
+                        <p class="text-sm">${msg.content}</p>
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // 添加用户消息
+            chatHistory.push({ role: 'user', content: text });
+            input.value = '';
+            renderChatMessages();
+            
+            // 添加打字指示器
+            const container = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex justify-start';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <img src="${currentCharacter.avatar}" class="w-8 h-8 rounded-full object-cover mr-2">
+                <div class="chat-bubble chat-left">
+                    <div class="typing-indicator flex gap-1 py-1">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            // 检查是否为AI角色，使用硅基流动 API
+            if (currentCharacter.isAI && currentCharacter.aiType && API_CONFIG.checkSiliconFlowConfigured()) {
+                callSiliconFlowAPI(text);
+            } else {
+                // 非AI角色或未配置API，使用模拟回复
+                simulateResponse();
+            }
+        }
+        
+        // 调用硅基流动 API 进行聊天
+        async function callSiliconFlowAPI(userMessage) {
+            try {
+                const charConfig = CHARACTER_PROMPTS[currentCharacter.aiType];
+                const systemPrompt = charConfig ? charConfig.prompt : '你是一个有帮助的AI助手。';
+                
+                const response = await fetch(SILICONFLOW_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: SILICONFLOW_MODEL,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            ...chatHistory.slice(-10).map(msg => ({
+                                role: msg.role,
+                                content: msg.content
+                            })),
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.8,
+                        max_tokens: 1024
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`API错误: ${response.status} - ${errorData.error?.message || '未知错误'}`);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices?.[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
+                
+                // 移除打字指示器
+                document.getElementById('typingIndicator')?.remove();
+                
+                // 添加AI回复
+                chatHistory.push({ role: 'assistant', content: aiResponse });
+                renderChatMessages();
+                
+            } catch (error) {
+                console.error('硅基流动 API错误:', error);
+                document.getElementById('typingIndicator')?.remove();
+                
+                // 显示错误提示
+                const container = document.getElementById('chatMessages');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'flex justify-center';
+                errorDiv.innerHTML = `
+                    <div class="chat-bubble bg-red-500/20 text-red-400 text-xs px-4 py-2">
+                        <i class="fas fa-exclamation-circle mr-1"></i> AI回复失败: ${error.message}
+                    </div>
+                `;
+                container.appendChild(errorDiv);
+                container.scrollTop = container.scrollHeight;
+                
+                // 提供模拟回复作为备选
+                setTimeout(() => {
+                    errorDiv.remove();
+                    chatHistory.push({ role: 'assistant', content: getFallbackResponse(userMessage) });
+                    renderChatMessages();
+                }, 2000);
+            }
+        }
+        
+        // 获取模拟回复（当API不可用时）
+        function getFallbackResponse(message) {
+            const responses = [
+                `收到你的消息了！虽然我现在有点忙，但很高兴和你聊天~`,
+                `这个问题很有趣！让我想想怎么回答你...`,
+                `哇，你问的这个问题太好了！我需要整理一下思路~`,
+                `谢谢你的提问！我会尽力给你最好的回答。`,
+                `明白了！关于这个话题，我有一些想法想和你分享~`
+            ];
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        // 模拟AI回复（非AI角色）
+        function simulateResponse() {
+            setTimeout(() => {
+                document.getElementById('typingIndicator')?.remove();
+                const responses = [
+                    `这是个很好的问题！让我来帮你分析一下...`,
+                    `明白了！关于这个话题，我有一些想法想和你分享~`,
+                    `好的，我来帮你解答。根据我的理解...`,
+                    `太棒了！很高兴和你讨论这个话题！`,
+                    `让我想想...其实这个问题可以从多个角度来看待`
+                ];
+                chatHistory.push({ 
+                    role: 'assistant', 
+                    content: responses[Math.floor(Math.random() * responses.length)] 
+                });
+                renderChatMessages();
+            }, 1500);
+        }
+
+        // 搜索
+        function showCharacterSearch() {
+            alert('角色搜索功能开发中...');
+        }
+
+        // 筛选
+        function showFilters() {
+            alert('筛选功能开发中...');
+        }
+
+        // 加载更多
+        function loadMore() {
+            alert('正在加载更多角色...');
+        }
+
+        // 创建角色
+        function showCreateCharacter() {
+            alert('创建角色功能开发中，敬请期待！');
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

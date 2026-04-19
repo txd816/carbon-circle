@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI工具 - 碳基圈</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        * { font-family: 'Noto Sans SC', sans-serif; }
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --text-primary: #ffffff;
+            --text-secondary: #8b8b9a;
+            --border: #2a2a3a;
+        }
+        body { background: var(--bg-primary); color: var(--text-primary); }
+        .glass { background: rgba(26,26,36,0.85); backdrop-filter: blur(12px); }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; }
+        .gradient-text { background: linear-gradient(135deg, #6c5ce7, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary { background: linear-gradient(135deg, #6c5ce7, #a29bfe); transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,0.4); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .tool-card { transition: all 0.3s; }
+        .tool-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(108,92,231,0.2); }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-item.active { color: var(--accent); }
+        .nav-item.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background: var(--accent); border-radius: 2px; }
+        .modal-overlay { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .progress-bar { background: linear-gradient(90deg, #6c5ce7, #a29bfe); animation: progress 2s ease-in-out infinite; }
+        @keyframes progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .pulse-ring { animation: pulseRing 1.5s ease-out infinite; }
+        @keyframes pulseRing { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+        .glow { box-shadow: 0 0 30px rgba(108,92,231,0.5); }
+        /* 图片生成结果样式 */
+        .image-result { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            overflow: hidden;
+        }
+        .image-result img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        /* 音乐播放样式 */
+        .music-playing {
+            animation: musicPulse 1s ease-in-out infinite;
+        }
+        @keyframes musicPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .waveform {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 20px;
+        }
+        .waveform span {
+            width: 3px;
+            background: linear-gradient(to top, #6c5ce7, #a29bfe);
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        .waveform span:nth-child(1) { height: 60%; animation-delay: 0s; }
+        .waveform span:nth-child(2) { height: 100%; animation-delay: 0.1s; }
+        .waveform span:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+        .waveform span:nth-child(4) { height: 80%; animation-delay: 0.3s; }
+        .waveform span:nth-child(5) { height: 50%; animation-delay: 0.4s; }
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.5); }
+        }
+        .api-notice {
+            background: linear-gradient(135deg, rgba(108,92,231,0.2), rgba(162,155,254,0.2));
+            border: 1px solid rgba(108,92,231,0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+    <!-- 顶部导航 -->
+    <header class="glass fixed top-0 left-0 right-0 z-50 px-4 py-3">
+        <div class="flex items-center justify-between max-w-2xl mx-auto">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-lg"></i>
+                </div>
+                <span class="text-xl font-bold gradient-text">AI工具</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                    <i class="fas fa-history text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main class="pt-20 px-4 max-w-2xl mx-auto">
+        <!-- 工具类型切换 -->
+        <div class="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
+            <button class="tool-tab active px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap bg-purple-500/20 text-purple-400 border border-purple-500/30" data-type="all">
+                <i class="fas fa-th-large mr-2"></i>全部工具
+            </button>
+            <button class="tool-tab px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-type="music">
+                <i class="fas fa-music mr-2"></i>音乐生成
+            </button>
+            <button class="tool-tab px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-type="image">
+                <i class="fas fa-image mr-2"></i>图片生成
+            </button>
+            <button class="tool-tab px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-type="video">
+                <i class="fas fa-video mr-2"></i>视频生成
+            </button>
+            <button class="tool-tab px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap bg-white/5 text-gray-400 border border-transparent" data-type="text">
+                <i class="fas fa-file-alt mr-2"></i>文本处理
+            </button>
+        </div>
+
+        <!-- AI音乐生成区 -->
+        <section id="musicSection" class="mb-8 slide-up">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
+                        <i class="fas fa-music text-white text-sm"></i>
+                    </div>
+                    AI音乐生成
+                </h2>
+                <button class="text-sm text-purple-400" onclick="showAllTools('music')">查看全部 <i class="fas fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="card p-5 mb-4">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="relative">
+                        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                            <i class="fas fa-wave-square text-3xl text-pink-400"></i>
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center">
+                            <i class="fas fa-robot text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold mb-1">智能作曲大师</h3>
+                        <p class="text-sm text-gray-400">输入描述，自动生成专属音乐</p>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span class="text-xs text-gray-500"><i class="fas fa-play mr-1"></i>2.3万次使用</span>
+                            <span class="text-xs text-gray-500"><i class="fas fa-star mr-1 text-yellow-400"></i>4.9</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">音乐风格</label>
+                        <div class="flex gap-2 flex-wrap">
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30" data-style="electronic">电子</button>
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400 border border-transparent" data-style="pop">流行</button>
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400 border border-transparent" data-style="rock">摇滚</button>
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400 border border-transparent" data-style="jazz">爵士</button>
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400 border border-transparent" data-style="classical">古典</button>
+                            <button class="style-btn px-3 py-1.5 rounded-lg text-xs bg-white/5 text-gray-400 border border-transparent" data-style="chinese">中国风</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">音乐描述</label>
+                        <textarea id="musicPrompt" class="w-full p-3 rounded-xl bg-[#12121a] border border-[#2a2a3a] text-sm" rows="3" placeholder="例如：写一首充满科技感的电子音乐，节奏欢快，适合未来城市主题"></textarea>
+                    </div>
+                    
+                    <!-- API配置提示 -->
+                    <div id="musicApiNotice" class="api-notice text-sm">
+                        <i class="fas fa-info-circle text-purple-400 mr-2"></i>
+                        <span class="text-gray-300">音乐API未配置，将使用演示模式。</span>
+                        <a href="README.md" class="text-purple-400 ml-1 underline">查看配置教程</a>
+                    </div>
+                    
+                    <!-- 音乐结果展示 -->
+                    <div id="musicResults" class="hidden">
+                        <!-- 动态生成 -->
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 mb-1 block">时长</label>
+                            <div class="flex items-center gap-2">
+                                <input type="range" min="15" max="180" value="60" class="w-full accent-purple-500" id="durationSlider">
+                                <span class="text-sm text-gray-400 w-12" id="durationDisplay">60秒</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 mb-1 block">BPM</label>
+                            <input type="number" value="120" min="60" max="200" class="w-full p-2 rounded-lg bg-[#12121a] border border-[#2a2a3a] text-center">
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateMusic()" class="w-full py-4 rounded-xl btn-primary text-white font-semibold flex items-center justify-center gap-2">
+                        <i class="fas fa-magic"></i>
+                        开始生成
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 最近生成的音乐 -->
+            <div class="space-y-3" id="musicList">
+                <div class="card p-4 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center relative">
+                        <i class="fas fa-music text-purple-400"></i>
+                        <div class="absolute inset-0 rounded-xl border border-purple-500/50 pulse-ring"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-sm">星际漫游_v2</h4>
+                        <p class="text-xs text-gray-500">电子 · 45秒 · 刚刚生成</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card p-4 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-500/30 flex items-center justify-center">
+                        <i class="fas fa-music text-blue-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-sm">晨光序曲</h4>
+                        <p class="text-xs text-gray-500">钢琴 · 90秒 · 2小时前</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI图片生成区 -->
+        <section id="imageSection" class="mb-8 slide-up" style="animation-delay: 0.2s">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
+                        <i class="fas fa-image text-white text-sm"></i>
+                    </div>
+                    AI图片生成
+                </h2>
+                <button class="text-sm text-purple-400" onclick="showAllTools('image')">查看全部 <i class="fas fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="card p-5 mb-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <button class="px-4 py-2 rounded-lg text-sm bg-purple-500/20 text-purple-400 border border-purple-500/30">文生图</button>
+                    <button class="px-4 py-2 rounded-lg text-sm bg-white/5 text-gray-400">图生图</button>
+                    <button class="px-4 py-2 rounded-lg text-sm bg-white/5 text-gray-400">条件生图</button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">图片描述</label>
+                        <textarea id="imagePrompt" class="w-full p-3 rounded-xl bg-[#12121a] border border-[#2a2a3a] text-sm" rows="3" placeholder="详细描述你想要的画面，包括主体、背景、风格、光线等..."></textarea>
+                    </div>
+                    
+                    <!-- API配置提示 -->
+                    <div id="imageApiNotice" class="api-notice text-sm">
+                        <i class="fas fa-info-circle text-purple-400 mr-2"></i>
+                        <span class="text-gray-300">HuggingFace API 未配置，将使用演示模式。</span>
+                        <a href="README.md" class="text-purple-400 ml-1 underline">查看配置教程</a>
+                    </div>
+                    
+                    <!-- 图片结果展示 -->
+                    <div id="imageResults" class="grid grid-cols-2 gap-4 hidden">
+                        <!-- 动态生成 -->
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-400 mb-2 block">图片尺寸</label>
+                            <select class="w-full p-3 rounded-xl bg-[#12121a] border border-[#2a2a3a]">
+                                <option>1:1 (1024×1024)</option>
+                                <option>16:9 (1280×720)</option>
+                                <option>9:16 (720×1280)</option>
+                                <option>4:3 (1024×768)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-400 mb-2 block">生成数量</label>
+                            <select class="w-full p-3 rounded-xl bg-[#12121a] border border-[#2a2a3a]">
+                                <option>1张</option>
+                                <option selected>2张</option>
+                                <option>4张</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">风格选择</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button class="style-btn aspect-square rounded-xl bg-gradient-to-br from-pink-500/30 to-purple-500/30 flex flex-col items-center justify-center text-xs gap-1 border border-pink-500/30">
+                                <i class="fas fa-palette text-pink-400"></i>
+                                <span>写实</span>
+                            </button>
+                            <button class="style-btn aspect-square rounded-xl bg-white/5 flex flex-col items-center justify-center text-xs gap-1 border border-transparent">
+                                <i class="fas fa-cube text-gray-400"></i>
+                                <span>动漫</span>
+                            </button>
+                            <button class="style-btn aspect-square rounded-xl bg-white/5 flex flex-col items-center justify-center text-xs gap-1 border border-transparent">
+                                <i class="fas fa-paint-brush text-gray-400"></i>
+                                <span>油画</span>
+                            </button>
+                            <button class="style-btn aspect-square rounded-xl bg-white/5 flex flex-col items-center justify-center text-xs gap-1 border border-transparent">
+                                <i class="fas fa-star text-gray-400"></i>
+                                <span>插画</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="generateImage()" class="w-full py-4 rounded-xl btn-primary text-white font-semibold flex items-center justify-center gap-2">
+                        <i class="fas fa-magic"></i>
+                        开始生成
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 提示词模板 -->
+            <div class="card p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-medium text-sm"><i class="fas fa-lightbulb text-yellow-400 mr-2"></i>提示词灵感</h4>
+                </div>
+                <div class="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                    <button class="prompt-template flex-shrink-0 px-4 py-2 rounded-lg text-xs bg-white/5 text-gray-400" data-prompt="赛博朋克城市夜景，霓虹灯，高对比度，电影感">
+                        🌃 赛博朋克城市
+                    </button>
+                    <button class="prompt-template flex-shrink-0 px-4 py-2 rounded-lg text-xs bg-white/5 text-gray-400" data-prompt="二次元少女插画，粉色头发，大眼睛，清新色调">
+                        🎨 二次元少女
+                    </button>
+                    <button class="prompt-template flex-shrink-0 px-4 py-2 rounded-lg text-xs bg-white/5 text-gray-400" data-prompt="未来科技感机器人，银色金属质感，蓝色发光">
+                        🤖 科技机器人
+                    </button>
+                    <button class="prompt-template flex-shrink-0 px-4 py-2 rounded-lg text-xs bg-white/5 text-gray-400" data-prompt="中国古典水墨画，仙鹤，竹林，云雾缭绕">
+                        🏯 中国风山水
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 更多工具 -->
+        <section class="mb-8 slide-up" style="animation-delay: 0.4s">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                        <i class="fas fa-wand-magic-sparkles text-white text-sm"></i>
+                    </div>
+                    更多AI工具
+                </h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="card p-4 tool-card cursor-pointer" onclick="openTool('video')">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center mb-3">
+                        <i class="fas fa-video text-2xl text-purple-400"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">AI视频生成</h3>
+                    <p class="text-xs text-gray-500 mb-2">文字转视频，图片生视频</p>
+                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <i class="fas fa-fire text-orange-400"></i>
+                        <span>热门</span>
+                    </div>
+                </div>
+                
+                <div class="card p-4 tool-card cursor-pointer" onclick="openTool('avatar')">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center mb-3">
+                        <i class="fas fa-user-astronaut text-2xl text-pink-400"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">数字人</h3>
+                    <p class="text-xs text-gray-500 mb-2">AI虚拟主播生成</p>
+                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <i class="fas fa-bolt text-yellow-400"></i>
+                        <span>新功能</span>
+                    </div>
+                </div>
+                
+                <div class="card p-4 tool-card cursor-pointer" onclick="openTool('voice')">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mb-3">
+                        <i class="fas fa-microphone text-2xl text-amber-400"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">声音克隆</h3>
+                    <p class="text-xs text-gray-500 mb-2">完美复刻你的音色</p>
+                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <i class="fas fa-chart-line text-green-400"></i>
+                        <span>推荐</span>
+                    </div>
+                </div>
+                
+                <div class="card p-4 tool-card cursor-pointer" onclick="openTool('code')">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mb-3">
+                        <i class="fas fa-code text-2xl text-cyan-400"></i>
+                    </div>
+                    <h3 class="font-semibold mb-1">代码助手</h3>
+                    <p class="text-xs text-gray-500 mb-2">AI编程辅助工具</p>
+                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <i class="fas fa-check text-blue-400"></i>
+                        <span>免费</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 创作广场 -->
+        <section class="mb-8 slide-up" style="animation-delay: 0.6s">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                        <i class="fas fa-crown text-white text-sm"></i>
+                    </div>
+                    创作广场
+                </h2>
+                <button class="text-sm text-purple-400">查看更多 <i class="fas fa-chevron-right"></i></button>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2">
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer">
+                    <img src="https://picsum.photos/300/300?random=10" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <span class="text-xs"><i class="fas fa-heart mr-1"></i>234</span>
+                    </div>
+                </div>
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer">
+                    <img src="https://picsum.photos/300/300?random=11" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <span class="text-xs"><i class="fas fa-heart mr-1"></i>567</span>
+                    </div>
+                </div>
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer">
+                    <img src="https://picsum.photos/300/300?random=12" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <span class="text-xs"><i class="fas fa-heart mr-1"></i>890</span>
+                    </div>
+                </div>
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer">
+                    <img src="https://picsum.photos/300/300?random=13" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <span class="text-xs"><i class="fas fa-heart mr-1"></i>123</span>
+                    </div>
+                </div>
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer">
+                    <img src="https://picsum.photos/300/300?random=14" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <span class="text-xs"><i class="fas fa-heart mr-1"></i>456</span>
+                    </div>
+                </div>
+                <div class="aspect-square rounded-xl overflow-hidden relative group cursor-pointer bg-white/5 flex items-center justify-center">
+                    <div class="text-center">
+                        <i class="fas fa-plus text-2xl text-gray-500 mb-1"></i>
+                        <span class="text-xs text-gray-500">查看更多</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部导航 -->
+    <nav class="glass fixed bottom-0 left-0 right-0 z-50 px-2 py-2">
+        <div class="flex justify-around max-w-2xl mx-auto">
+            <a href="index.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs">首页</span>
+            </a>
+            <a href="ai-tools.html" class="nav-item active relative flex flex-col items-center gap-1 px-4 py-2">
+                <i class="fas fa-robot text-lg"></i>
+                <span class="text-xs">AI工具</span>
+            </a>
+            <a href="ai-characters.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-users text-lg"></i>
+                <span class="text-xs">角色</span>
+            </a>
+            <a href="market.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-store text-lg"></i>
+                <span class="text-xs">市场</span>
+            </a>
+            <a href="profile.html" class="nav-item relative flex flex-col items-center gap-1 px-4 py-2 text-gray-500">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs">我的</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 生成中弹窗 -->
+    <div id="generatingModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0"></div>
+        <div class="absolute inset-x-8 top-1/2 -translate-y-1/2 bg-[#1a1a24] rounded-2xl p-8 text-center">
+            <div class="w-20 h-20 mx-auto mb-6 relative">
+                <div class="absolute inset-0 rounded-full bg-purple-500/20 animate-ping"></div>
+                <div class="absolute inset-0 rounded-full bg-purple-500/20 animate-ping" style="animation-delay: 0.5s"></div>
+                <div class="relative w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <i class="fas fa-magic text-3xl text-white"></i>
+                </div>
+            </div>
+            <h3 class="text-xl font-bold mb-2" id="generatingTitle">AI正在创作中...</h3>
+            <p class="text-gray-400 text-sm mb-4" id="generatingDesc">预计等待时间约30秒</p>
+            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full progress-bar rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToolType = 'all';
+        
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initAPINotices();
+        });
+        
+        // 初始化API配置提示
+        function initAPINotices() {
+            // 图片API提示 - Pollinations (无需配置)
+            const imageNotice = document.getElementById('imageApiNotice');
+            if (imageNotice) {
+                imageNotice.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i><span class="text-gray-300">Pollinations AI 已配置，完全免费无需 API Key</span>';
+                imageNotice.classList.add('border-green-500/30');
+            }
+            
+            // 音乐API提示 - Mureka
+            const musicNotice = document.getElementById('musicApiNotice');
+            if (musicNotice) {
+                if (API_CONFIG.checkMurekaConfigured()) {
+                    musicNotice.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i><span class="text-gray-300">Mureka API 已配置，可以使用 AI 音乐生成功能</span>';
+                    musicNotice.classList.add('border-green-500/30');
+                } else {
+                    musicNotice.innerHTML = '<i class="fas fa-info-circle text-purple-400 mr-2"></i><span class="text-gray-300">Mureka API 未配置，将使用演示模式。</span><a href="README.md" class="text-purple-400 ml-1 underline">查看配置教程</a>';
+                }
+            }
+        }
+        
+        // 工具类型切换
+        document.querySelectorAll('.tool-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tool-tab').forEach(t => {
+                    t.classList.remove('active', 'bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                    t.classList.add('bg-white/5', 'text-gray-400', 'border-transparent');
+                });
+                this.classList.add('active', 'bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                this.classList.remove('bg-white/5', 'text-gray-400', 'border-transparent');
+                currentToolType = this.dataset.type;
+            });
+        });
+
+        // 风格选择
+        document.querySelectorAll('.style-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const parent = this.closest('.flex, .grid');
+                if (parent) {
+                    parent.querySelectorAll('.style-btn').forEach(b => {
+                        b.classList.remove('bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                        b.classList.add('bg-white/5', 'text-gray-400', 'border-transparent');
+                    });
+                }
+                this.classList.add('bg-purple-500/20', 'text-purple-400', 'border-purple-500/30');
+                this.classList.remove('bg-white/5', 'text-gray-400', 'border-transparent');
+            });
+        });
+
+        // 提示词模板
+        document.querySelectorAll('.prompt-template').forEach(template => {
+            template.addEventListener('click', function() {
+                document.getElementById('imagePrompt').value = this.dataset.prompt;
+            });
+        });
+
+        // 时长滑块
+        document.getElementById('durationSlider')?.addEventListener('input', function() {
+            document.getElementById('durationDisplay').textContent = this.value + '秒';
+        });
+
+        // 生成音乐
+        function generateMusic() {
+            const prompt = document.getElementById('musicPrompt').value.trim();
+            if (!prompt) {
+                showToast('请输入音乐描述', 'warning');
+                return;
+            }
+            
+            document.getElementById('generatingTitle').textContent = '正在生成音乐...';
+            document.getElementById('generatingDesc').textContent = 'AI正在根据您的描述创作音乐';
+            document.getElementById('generatingModal').classList.remove('hidden');
+            
+            // 获取选择的风格
+            const selectedStyle = document.querySelector('#musicSection .style-btn.bg-purple-500\\/20');
+            const style = selectedStyle ? selectedStyle.dataset.style : 'electronic';
+            
+            // 获取时长
+            const duration = document.getElementById('durationSlider')?.value || 60;
+            
+            // 检查API配置 - 优先使用Mureka API
+            if (API_CONFIG.checkMurekaConfigured()) {
+                callMurekaAPI(prompt, style, duration);
+            } else {
+                // 演示模式
+                setTimeout(() => {
+                    document.getElementById('generatingModal').classList.add('hidden');
+                    showDemoMusicResult(prompt, style, duration);
+                }, 3000);
+            }
+        }
+        
+        // 调用 Mureka API 生成音乐
+        async function callMurekaAPI(prompt, style, duration) {
+            try {
+                // 转换风格为英文
+                const styleMap = {
+                    'electronic': 'electronic, synthwave, futuristic',
+                    'pop': 'pop, upbeat, catchy melody',
+                    'rock': 'rock, energetic, guitar',
+                    'jazz': 'jazz, smooth, saxophone',
+                    'classical': 'classical, orchestral, piano',
+                    'chinese': 'chinese, traditional, guzheng'
+                };
+                const stylePrompt = styleMap[style] || 'pop, upbeat';
+                
+                // 调用 Mureka API
+                const response = await fetch(MUREKA_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${MUREKA_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: stylePrompt,
+                        lyrics: '',  // 可选：如果有歌词可以填入
+                        model: 'auto',
+                        style: style
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`API错误: ${response.status} - ${errorData.error?.message || '未知错误'}`);
+                }
+                
+                const data = await response.json();
+                const taskId = data.id;
+                
+                // 轮询任务状态
+                pollMurekaTask(taskId, prompt, style);
+                
+            } catch (error) {
+                console.error('Mureka API错误:', error);
+                document.getElementById('generatingModal').classList.add('hidden');
+                showToast('音乐生成失败: ' + error.message, 'error');
+                // 使用演示模式
+                showDemoMusicResult(prompt, style, duration);
+            }
+        }
+        
+        // 轮询Mureka任务状态
+        async function pollMurekaTask(taskId, prompt, style, pollCount = 0) {
+            const maxPolls = 60; // 最多轮询60次（约60秒）
+            
+            if (pollCount >= maxPolls) {
+                document.getElementById('generatingModal').classList.add('hidden');
+                showToast('音乐生成超时，请重试', 'error');
+                showDemoMusicResult(prompt, style, 60);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${MUREKA_QUERY_URL}/${taskId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${MUREKA_API_KEY}`
+                    }
+                });
+                
+                const data = await response.json();
+                const status = data.status;
+                
+                if (status === 'succeeded') {
+                    // 生成成功
+                    document.getElementById('generatingModal').classList.add('hidden');
+                    const choices = data.choices || [];
+                    if (choices.length > 0) {
+                        showMurekaMusicResult(choices[0], prompt, style);
+                    } else {
+                        showToast('音乐生成成功但无结果', 'warning');
+                        showDemoMusicResult(prompt, style, 60);
+                    }
+                } else if (status === 'failed' || status === 'timeouted') {
+                    // 生成失败
+                    document.getElementById('generatingModal').classList.add('hidden');
+                    showToast('音乐生成失败: ' + (data.failed_reason || '未知原因'), 'error');
+                    showDemoMusicResult(prompt, style, 60);
+                } else {
+                    // 继续轮询
+                    document.getElementById('generatingDesc').textContent = `生成中... (${Math.floor(pollCount * 1)}秒)`;
+                    setTimeout(() => pollMurekaTask(taskId, prompt, style, pollCount + 1), 1000);
+                }
+            } catch (error) {
+                console.error('轮询错误:', error);
+                setTimeout(() => pollMurekaTask(taskId, prompt, style, pollCount + 1), 2000);
+            }
+        }
+        
+        // 显示Mureka音乐结果
+        function showMurekaMusicResult(musicData, prompt, style) {
+            const musicId = 'mureka_' + Date.now();
+            const audioUrl = musicData.audio_url || musicData.url;
+            const videoUrl = musicData.video_url;
+            
+            const resultHtml = `
+                <div class="card p-4 music-result" data-id="${musicId}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center music-playing" id="cover_${musicId}">
+                            <i class="fas fa-music text-purple-400 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-sm">${prompt.slice(0, 20)}${prompt.length > 20 ? '...' : ''}</h4>
+                            <p class="text-xs text-gray-500">${getStyleName(style)} · Mureka生成</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        ${audioUrl ? `<button onclick="playMusic('${audioUrl}')" class="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i> 播放
+                        </button>` : ''}
+                        ${audioUrl ? `<a href="${audioUrl}" download="mureka-song-${Date.now()}.mp3" class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </a>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            const resultsContainer = document.getElementById('musicResults');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = resultHtml + resultsContainer.innerHTML;
+            
+            showToast('音乐生成成功！', 'success');
+        }
+        
+        // 显示演示音乐结果
+        function showDemoMusicResult(prompt, style, duration) {
+            const musicId = 'demo_' + Date.now();
+            const resultHtml = `
+                <div class="card p-4 music-result" data-id="${musicId}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center music-playing" id="cover_${musicId}">
+                            <div class="waveform">
+                                <span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-sm">${prompt.slice(0, 20)}${prompt.length > 20 ? '...' : ''}</h4>
+                            <p class="text-xs text-gray-500">${getStyleName(style)} · ${duration}秒 · 演示模式</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="playDemoMusic('${musicId}')" class="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i> 播放演示
+                        </button>
+                        <button class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>这是演示模式，配置Mureka API可生成真实音乐</p>
+                </div>
+            `;
+            
+            const resultsContainer = document.getElementById('musicResults');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = resultHtml + resultsContainer.innerHTML;
+            
+            showToast('演示模式：请配置 Mureka API 获取真实音乐', 'info');
+        }
+        
+        // 播放演示音乐
+        function playDemoMusic(musicId) {
+            showToast('演示模式：配置API后即可播放真实音乐', 'info');
+        }
+        
+        // 显示真实音乐结果
+        function showMusicResult(audioData, prompt, style) {
+            const musicId = 'music_' + Date.now();
+            const resultHtml = `
+                <div class="card p-4 music-result" data-id="${musicId}">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 flex items-center justify-center music-playing" id="cover_${musicId}">
+                            <i class="fas fa-music text-purple-400 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-sm">${prompt.slice(0, 20)}${prompt.length > 20 ? '...' : ''}</h4>
+                            <p class="text-xs text-gray-500">${getStyleName(style)} · 真实生成</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="playMusic('${audioData.audio}')" class="flex-1 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-play"></i> 播放
+                        </button>
+                        <a href="${audioData.audio}" download class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            const resultsContainer = document.getElementById('musicResults');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = resultHtml + resultsContainer.innerHTML;
+            
+            showToast('音乐生成成功！', 'success');
+        }
+        
+        // 播放音乐
+        function playMusic(audioUrl) {
+            const audio = new Audio(audioUrl);
+            audio.play();
+        }
+        
+        // 获取风格名称
+        function getStyleName(style) {
+            const styles = {
+                'electronic': '电子',
+                'pop': '流行',
+                'rock': '摇滚',
+                'jazz': '爵士',
+                'classical': '古典',
+                'chinese': '中国风'
+            };
+            return styles[style] || '通用';
+        }
+
+        // 生成图片
+        function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value.trim();
+            if (!prompt) {
+                showToast('请输入图片描述', 'warning');
+                return;
+            }
+            
+            document.getElementById('generatingTitle').textContent = '正在生成图片...';
+            document.getElementById('generatingDesc').textContent = 'AI正在根据您的描述创作图片';
+            document.getElementById('generatingModal').classList.remove('hidden');
+            
+            // 获取选择的尺寸
+            const sizeSelect = document.querySelector('#imageSection select:first-of-type');
+            const sizeMap = {
+                '1:1 (1024×1024)': '1024*1024',
+                '16:9 (1280×720)': '1280*720',
+                '9:16 (720×1280)': '720*1280',
+                '4:3 (1024×768)': '1024*768'
+            };
+            const size = sizeSelect ? sizeMap[sizeSelect.value] || sizeMap['1:1 (1024×1024)'] : sizeMap['1:1 (1024×1024)'];
+            
+            // 获取生成数量
+            const countSelect = document.querySelector('#imageSection select:last-of-type');
+            const n = countSelect ? parseInt(countSelect.value) || 1 : 1;
+            
+            // 调用 Pollinations AI 生成图片 (无需 API Key)
+            callPollinationsAPI(prompt, size, n);
+        }
+        
+        // 调用 Pollinations AI API 生成图片
+        async function callPollinationsAPI(prompt, size, n) {
+            try {
+                // 解析尺寸
+                const [width, height] = size.split('*').map(Number);
+                
+                // 生成多张图片
+                const promises = [];
+                for (let i = 0; i < n; i++) {
+                    const encodedPrompt = encodeURIComponent(prompt);
+                    const seed = Math.floor(Math.random() * 1000000);
+                    const imageUrl = `${POLLINATIONS_API_URL}/${encodedPrompt}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}&enhance=true`;
+                    promises.push({ url: imageUrl, index: i });
+                }
+                
+                // 显示loading，等待图片加载
+                let loadedCount = 0;
+                for (const p of promises) {
+                    await new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            loadedCount++;
+                            document.getElementById('generatingDesc').textContent = `生成中... (${loadedCount}/${n})`;
+                            showPollinationsImageResult(p.url, prompt, p.index);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            loadedCount++;
+                            document.getElementById('generatingDesc').textContent = `生成中... (${loadedCount}/${n})`;
+                            showToast('图片加载失败，将使用备用地址', 'warning');
+                            showPollinationsImageResult(p.url, prompt, p.index);
+                            resolve();
+                        };
+                        img.src = p.url;
+                    });
+                }
+                
+                document.getElementById('generatingModal').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Pollinations API错误:', error);
+                document.getElementById('generatingModal').classList.add('hidden');
+                showToast('图片生成失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 显示 Pollinations 图片结果
+        function showPollinationsImageResult(imageUrl, prompt, index) {
+            const resultHtml = `
+                <div class="image-result">
+                    <div class="relative group">
+                        <img src="${imageUrl}" alt="生成的图片" loading="lazy">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button onclick="downloadImage('${imageUrl}', ${index})" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button onclick="shareImage('${imageUrl}')" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+                                <i class="fas fa-share"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-xs text-gray-400 mb-2 line-clamp-1">${prompt}</p>
+                        <span class="text-xs text-green-400"><i class="fas fa-check-circle mr-1"></i>Pollinations AI 生成</span>
+                    </div>
+                </div>
+            `;
+            
+            const resultsContainer = document.getElementById('imageResults');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = resultHtml + resultsContainer.innerHTML;
+            
+            showToast('图片生成成功！', 'success');
+        }
+        
+        // 显示演示图片结果
+        function showDemoImageResult(prompt) {
+            // 使用 picsum.photos 生成演示图片
+            const imageId = 'demo_' + Date.now();
+            const demoUrl = `https://picsum.photos/seed/${imageId}/512/512`;
+            
+            const resultHtml = `
+                <div class="image-result">
+                    <div class="relative">
+                        <img src="${demoUrl}" alt="演示图片" loading="lazy">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="text-sm text-white">演示模式</span>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-xs text-gray-400 mb-2 line-clamp-1">${prompt}</p>
+                        <div class="flex gap-2">
+                            <button onclick="downloadDemoImage('${demoUrl}')" class="flex-1 py-2 rounded-lg bg-purple-500/20 text-purple-400 text-xs flex items-center justify-center gap-1">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const resultsContainer = document.getElementById('imageResults');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.innerHTML = resultHtml + resultsContainer.innerHTML;
+            
+            showToast('演示模式：图片加载中...', 'info');
+        }
+        
+        // 显示真实图片结果 (兼容旧函数)
+        function showImageResult(imageUrl, originalPrompt, enhancedPrompt) {
+            showPollinationsImageResult(imageUrl, originalPrompt, 0);
+        }
+        
+        // 下载图片
+        function downloadImage(url, index = 0) {
+            // 创建一个新的图片对象来获取blob
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob(function(blob) {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `ai-image-${Date.now()}.png`;
+                    link.click();
+                }, 'image/png');
+            };
+            img.src = url;
+        }
+        
+        // 分享图片
+        function shareImage(url) {
+            if (navigator.share) {
+                navigator.share({
+                    title: '碳基圈 AI 创作',
+                    text: '看看我用AI生成的图片！',
+                    url: url
+                });
+            } else {
+                showToast('链接已复制到剪贴板', 'success');
+                navigator.clipboard.writeText(url);
+            }
+        }
+        
+        // Toast提示组件
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const bgColors = {
+                'success': 'bg-green-500',
+                'error': 'bg-red-500',
+                'warning': 'bg-yellow-500',
+                'info': 'bg-purple-500'
+            };
+            toast.className = `fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full ${bgColors[type]} text-white text-sm z-50 animate-fade-in`;
+            toast.textContent = message;
+            toast.style.animation = 'fadeIn 0.3s ease-out';
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // 添加动画样式
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+            @keyframes fadeOut { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -20px); } }
+        `;
+        document.head.appendChild(styleSheet);
+
+        // 打开工具
+        function openTool(toolType) {
+            alert(`正在打开${toolType}工具，功能开发中...`);
+        }
+
+        // 查看全部
+        function showAllTools(type) {
+            alert(`查看全部${type}工具，功能开发中...`);
+        }
+    </script>
+</body>
+</html>
